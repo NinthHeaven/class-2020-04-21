@@ -26,9 +26,17 @@ cces <- read_rds("cces_initial.rds")
 **Prompt:** Take a peek at the data and try and figure out what the variables mean. You can find the codebook here: https://dataverse.harvard.edu/file.xhtml?persistentId=doi:10.7910/DVN/II2DB6/EARRB5&version=4.1 
 
 1) What is the age of oldest person who responded to this survey?
+95
 
 2) What proportion of females voted for Trump? 
+~40%
 
+```{r sc1, echo=FALSE}
+
+female_trump <- cces %>%
+  filter(gender == "Female") %>%
+  summarize(mean_vote = mean(trump == 1))
+```
 
 # Scene 2
 
@@ -38,6 +46,33 @@ cces <- read_rds("cces_initial.rds")
 
 2) What is the expected vote for Dom - who is Male, 37, holds a 4-year degree (placing him in the 5 `educ` bucket), Asian, makes $77,000, with `ideology` and `party` equal to 3. (Hint: use predict().)
 
+```{r sc2, echo=FALSE}
+
+logistic_mod <- logistic_reg() %>%
+  set_engine("glm")
+
+logistic_fit <- fit(logistic_mod, 
+                    trump ~ gender + age + educ + race + income + party + ideology,
+                    data = cces)
+
+logistic_fit %>%
+  tidy(conf.int = TRUE) %>%
+  select(term, estimate, conf.low, conf.high)
+
+-0.339/4
+
+# Females are ~8% less likely to vote for trump taking into account the other variables.
+
+# Other strategy: Create the tibble 'dom' with the features printed below.
+
+predict(logistic_fit, new_data = tibble(gender = "Male",
+                                         age = 37,
+                                         educ = 5,
+                                         party = 3,
+                                         ideology = 3,
+                                         race = "Asian",
+                                         income = 8))
+```
 
 
 # Scene 3
@@ -48,6 +83,35 @@ cces <- read_rds("cces_initial.rds")
 
 2) Looking at the randomForest model, what does the OOB error tell us? Interpret the first row, second column of the confusion matrix, what does that 920 represent? How does 920 relate to the class.error of 0.078?
 
+
+```{r sc3, echo=FALSE}
+set.seed(1005)
+
+tree <- decision_tree() %>%
+  set_engine("rpart", model = TRUE) %>%
+  set_mode("classification")
+
+cart_model <- fit(tree,
+                  factor(trump) ~ gender + age + educ + race + income + party + ideology,
+                  data = cces)
+
+cart_model$fit %>%
+  prp(extra = "auto",
+      varlen = 0,
+      faclen = 0)
+
+# Dom would fall on the left-hand side of the classification tree because his party value is less than 4 so he is more likely to not vote for Trump.
+
+forest <- rand_forest(mtry = 7, trees = 50) %>%
+  set_engine("randomForest") %>%
+  set_mode("classification")
+
+cces_forest <- fit(forest,
+                   factor(trump) ~ gender + age + educ + race + income + party + ideology,
+                  data = cces)
+
+cces_forest
+```
 
 
 # Scene 4
