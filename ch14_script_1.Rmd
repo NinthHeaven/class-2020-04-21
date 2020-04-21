@@ -92,7 +92,7 @@ tree <- decision_tree() %>%
   set_mode("classification")
 
 cart_model <- fit(tree,
-                  factor(trump) ~ gender + age + educ + race + income + party + ideology,
+                  trump ~ gender + age + educ + race + income + party + ideology,
                   data = cces)
 
 cart_model$fit %>%
@@ -102,12 +102,14 @@ cart_model$fit %>%
 
 # Dom would fall on the left-hand side of the classification tree because his party value is less than 4 so he is more likely to not vote for Trump.
 
+set.seed(1005)
+
 forest <- rand_forest(mtry = 7, trees = 50) %>%
   set_engine("randomForest") %>%
   set_mode("classification")
 
 cces_forest <- fit(forest,
-                   factor(trump) ~ gender + age + educ + race + income + party + ideology,
+                   trump ~ gender + age + educ + race + income + party + ideology,
                   data = cces)
 
 cces_forest
